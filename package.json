@@ -1,0 +1,54 @@
+{
+  "name": "jira-version-me",
+  "version": "0.0.1",
+  "private": false,
+  "description": "Jira Release Management",
+  "author": "Kevin de Jong",
+  "license": "MIT",
+  "homepage": "https://github.com/dev-build-deploy/jira-version-me",
+  "keywords": [
+    "github",
+    "action",
+    "jira"
+  ],
+  "bugs": {
+    "url": "https://github.com/dev-build-deploy/jira-version-me/issues"
+  },
+  "scripts": {
+    "build": "run-p build:*",
+    "build:cli": "ncc build -o lib/cli src/entrypoints/cli.ts",
+    "build:action": "ncc build -o lib/action src/entrypoints/action.ts",
+    "test": "jest --coverage",
+    "lint": "eslint --ext .ts .",
+    "format": "prettier --write **/*.ts && prettier --write **/**/*.ts"
+  },
+  "bin": {
+    "jira-version-me": "./bin/jira-version-me"
+  },
+  "dependencies": {
+    "@actions/core": "^1",
+    "axios": "^1.6.8",
+    "commander": "^12"
+  },
+  "devDependencies": {
+    "@octokit/openapi-types": "^19",
+    "@tsconfig/node20": "^20.1.2",
+    "@types/jest": "^29",
+    "@types/node": "^18",
+    "@typescript-eslint/eslint-plugin": "^6",
+    "@typescript-eslint/parser": "^6",
+    "@vercel/ncc": "^0",
+    "eslint": "^8",
+    "eslint-import-resolver-typescript": "^3",
+    "eslint-plugin-import": "^2",
+    "eslint-plugin-jest": "^27",
+    "jest": "^29",
+    "npm-run-all2": "^6",
+    "prettier": "^3",
+    "ts-jest": "^29",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

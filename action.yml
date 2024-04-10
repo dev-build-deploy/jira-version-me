@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2024 Kevin de Jong <monkaii@hotmail.com>
+# SPDX-License-Identifier: MIT
+
+name: 'JiraVersionMe - Jira Release Management'
+author: 'Kevin de Jong'
+description: >
+  Management of Jira releases (Fix Versions).
+
+branding:
+  icon: 'code'
+  color: 'white'
+
+inputs:
+  jira-url:
+    description: 'Jira URL used to access Jira (eg. https://jira.example.com)'
+    required: true
+
+  jira-token:
+    description: 'Jira token (PAT) used to access Jira'
+    required: true
+
+  project:
+    description: 'Jira Project Key'
+    required: true
+
+  version:
+    description: 'Name of the Version to create or update'
+    required: true
+
+  description:
+    description: 'Description of the Version'
+    required: false
+  
+  release:
+    description: 'Mark the version as "released"'
+    required: false
+    default: false
+
+  tickets:
+    description: 'List of Jira tickets to associate with the provided release'
+    required: false
+
+runs:
+  using: 'node20'
+  main: 'lib/action/index.js'
