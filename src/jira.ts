@@ -6,13 +6,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as core from "@actions/core";
+import { SemVer } from "@dev-build-deploy/version-it";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+
+import * as utils from "./utils";
 
 /**
  * Jira Version.
  * @internal
  */
-type Version = {
+export type Version = {
   self: string;
   id: string;
   name: string;
@@ -129,11 +132,17 @@ export class JiraClient {
    * @returns - A promise that resolves to the project information.
    */
   async getProject(project: string): Promise<Project> {
-    return (
+    const projectData = (
       await this.request("GET", `project/${project}`).catch(err => {
         throw new Error(err.response.data.errorMessages.join(", "));
       })
     ).data;
+
+    if (typeof projectData === "string") {
+      throw new Error(`Unable to retrieve the Jira project ${project}.`);
+    }
+
+    return projectData;
   }
 
   /**
@@ -148,10 +157,6 @@ export class JiraClient {
   ): Promise<void> {
     const projectData = await this.getProject(project);
 
-    if (typeof projectData === "string") {
-      throw new Error(`Unable to retrieve the Jira project ${project}.`);
-    }
-
     for (const v of projectData.versions || []) {
       if (version.name === v.name) {
         core.info(`ℹ️  Version ${version.name} already exists in project ${project}, updating....`);
@@ -164,14 +169,34 @@ export class JiraClient {
     }
 
     core.info(`ℹ️  Creating version ${version.name} in project ${project}...`);
+    const newVersion: Version = (
+      await this.request("POST", "version", {
+        ...version,
+        project: project,
+        projectId: projectData.id,
+      }).catch(err => {
+        throw new Error(err.response.data.errorMessages.join(", "));
+      })
+    ).data;
 
-    await this.request("POST", "version", {
-      ...version,
-      project: project,
-      projectId: projectData.id,
-    }).catch(err => {
-      throw new Error(err.response.data.errorMessages.join(", "));
-    });
+    const sortedVersions = utils
+      .sortFixVersions(projectData.versions)
+      .filter(
+        v => utils.getComponentVersion(v.name).component === utils.getComponentVersion(newVersion.name).component
+      );
+
+    for (let idx = 0; idx < sortedVersions.length; idx++) {
+      const cur = utils.getComponentVersion(newVersion.name);
+      const sor = utils.getComponentVersion(sortedVersions[idx].name);
+
+      if (new SemVer(sor.version).isGreaterThan(new SemVer(cur.version))) {
+        await this.moveVersion(newVersion, idx > 0 ? sortedVersions[idx - 1] : "First");
+        return;
+      } else if (idx === sortedVersions.length - 1) {
+        await this.moveVersion(newVersion, sortedVersions[idx]);
+        return;
+      }
+    }
   }
 
   /**
@@ -188,5 +213,44 @@ export class JiraClient {
         throw new Error(err.response.data.errorMessages.join(", "));
       }
     });
+  }
+
+  /**
+   * Moves a version to a new position.
+   * @param version - The version to move.
+   * @param after - The version to move after.
+   */
+  async moveVersion(version: Version, after: "First" | Version): Promise<void> {
+    if (after === "First") {
+      console.log(`ℹ️  Version ${version.name} is moved to the first position.`);
+      await this.request("POST", `version/${version.id}/move`, { position: "First" });
+      return;
+    }
+
+    core.info(`ℹ️  Moving version ${version.name} after version ${after.name}...`);
+    await this.request("POST", `version/${version.id}/move`, { after: after.self });
+  }
+
+  /**
+   * Sorts the versions of a project.
+   * @param project The key or ID of the project.
+   * @returns A promise that resolves when the versions are sorted.
+   */
+  async sortVersions(project: string): Promise<void> {
+    const projectData = await this.getProject(project);
+
+    core.startGroup(`📦 Sorting versions in project ${project}...`);
+    if (projectData.versions.length === 0) {
+      core.info(`ℹ️  No versions found in project ${project}.`);
+      return;
+    }
+
+    const sortedVersions = utils.sortFixVersions(projectData.versions);
+
+    await this.moveVersion(sortedVersions[0], "First");
+    for (let idx = 1; idx < sortedVersions.length; idx++) {
+      await this.moveVersion(sortedVersions[idx], sortedVersions[idx - 1]);
+    }
+    core.endGroup();
   }
 }

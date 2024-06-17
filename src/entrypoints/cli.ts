@@ -8,6 +8,7 @@
 import { Command } from "commander";
 
 import { JiraClient } from "../jira";
+import * as utils from "../utils";
 
 const program = new Command();
 
@@ -26,6 +27,7 @@ program
  */
 program
   .command("update")
+  .option("-c, --component <component>", "The component to update")
   .requiredOption("-v, --version <version>", "The version to create")
   .option("-d, --description <description>", "The description of the version")
   .option("-r, --release", "Mark the version as released")
@@ -34,9 +36,11 @@ program
     console.log("--------------------------------------");
     options = { ...program.opts(), ...options };
     const jira = new JiraClient(options.url, options.token);
+    const componentVersion = utils.setComponentVersion(options.version, options.component);
+
     try {
       await jira.createOrUpdateVersion(options.project, {
-        name: options.version,
+        name: componentVersion,
         description: options.description,
         archived: false,
         released: options.release ?? false,
@@ -47,11 +51,12 @@ program
       return;
     }
 
-    console.log(`✅ Version ${options.version} is up-to-date!`);
+    console.log(`✅ Version ${componentVersion} is up-to-date!`);
   });
 
 program
   .command("assign")
+  .option("-c, --component <component>", "The component to update")
   .requiredOption("-v, --version <version>", "The version to assign tickets to")
   .requiredOption("-t, --ticket <ticket...>", "List of JIRA tickets to assign to the specified version")
   .action(async options => {
@@ -59,16 +64,33 @@ program
     console.log("-------------------------------------------------");
     options = { ...program.opts(), ...options };
     const jira = new JiraClient(options.url, options.token);
+    const componentVersion = utils.setComponentVersion(options.version, options.component);
+
     for (const issue of options.ticket) {
       try {
-        await jira.assignTicketToVersion(issue, options.version);
+        await jira.assignTicketToVersion(issue, componentVersion);
       } catch (error) {
         program.error(`❌ ${(error as Error).message}`);
         return;
       }
 
-      console.log(`✅ Issue ${issue} assigned to version ${options.version} successfully!`);
+      console.log(`✅ Issue ${issue} assigned to version ${componentVersion} successfully!`);
     }
   });
+
+program.command("sort").action(async options => {
+  console.log("📔 JiraVersionMe - Sort Jira Versions");
+  console.log("------------------------------------");
+  options = { ...program.opts(), ...options };
+  const jira = new JiraClient(options.url, options.token);
+  try {
+    await jira.sortVersions(options.project);
+  } catch (error) {
+    program.error(`❌ ${(error as Error).message}`);
+    return;
+  }
+
+  console.log(`✅ Versions sorted successfully!`);
+});
 
 program.parse(process.argv);
