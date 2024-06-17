@@ -23,6 +23,10 @@ inputs:
     description: 'Jira Project Key'
     required: true
 
+  component:
+    description: 'Component to associate with the provided release (i.e. "framework" leading to "framework/1.0.0")'
+    required: false
+
   version:
     description: 'Name of the Version to create or update'
     required: true

@@ -6,7 +6,16 @@ SPDX-License-Identifier: MIT
 # Jira Version Me
 
 JiraVersionMe provides a [GitHub Action](#github-action), and [Command Line Interface](./docs/cli.md) for managing Jira Versions.
+The created releases are sorted based on SemVer 2.0 precedence, allowing you to use JQL for queries such as:
 
+```
+project=TEST AND fixVersion >=1.0.0 AND fixVersion <2.0.0
+```
+
+> [!WARNING]
+> The action expects that the initial versions are already sorted correctly.
+>
+> If this is not the case, please use the provided [CLI tool to sort your project Versions](#sorting-all-releases).
 
 ## GitHub Action
 
@@ -30,17 +39,22 @@ jobs:
           project: PIPE
           version: '1.0.0'
 
+          # OPTIONAL: Component name to associate with the provided release (i.e. "framework" leading to "framework/1.0.0")
+          component: 'framework'
           # OPTIONAL: Description associated with the version
           description: 'Product launch milestone'
           # OPTIONAL: Mark the version as "Released"
           release: true
           # OPTIONAL: Assign the following list of issues to the version
           tickets: |
-            PIPE-213
-            PIPE-214  
+            TEST-123
+            TEST-456
 ```
 
 ## Command-line Interface
+
+Currently the CLI tool is not distributed as a stand-alone product.
+For now, please clone the repository on the expected version and run the binary (`./bin/jira-version-me`) from your local environment.
 
 ### Basic usage
 ```sh
@@ -57,7 +71,17 @@ Options:
 Commands:
   update [options]
   assign [options]
+  sort
   help [command]           display help for command
+```
+
+### Sorting all Releases
+
+```sh
+Usage: jira-version-me sort [options]
+
+Options:
+  -h, --help  display help for command
 ```
 
 ### Create or Update a Version
@@ -66,6 +90,7 @@ Commands:
 Usage: jira-version-me update [options]
 
 Options:
+  -c, --component <component>      The component to update
   -v, --version <version>          The version to create
   -d, --description <description>  The description of the version
   -r, --release                    Mark the version as released
@@ -78,9 +103,10 @@ Options:
 Usage: jira-version-me assign [options]
 
 Options:
-  -v, --version <version>   The version to assign tickets to
-  -t, --ticket <ticket...>  List of JIRA tickets to assign to the specified version
-  -h, --help                display help for command
+  -c, --component <component>  The component to update
+  -v, --version <version>      The version to assign tickets to
+  -t, --ticket <ticket...>     List of JIRA tickets to assign to the specified version
+  -h, --help                   display help for command
 ```
 
 ## Contributing
