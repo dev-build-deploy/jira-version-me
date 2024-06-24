@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@actions/core": "^1",
-    "@dev-build-deploy/version-it": "^0.3.0",
+    "@dev-build-deploy/version-it": "^1.0.0",
     "axios": "^1.7.2",
     "commander": "^12"
   },
